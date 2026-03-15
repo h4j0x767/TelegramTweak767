@@ -1,0 +1,54 @@
+name: Build Telegram 767 MOD Tweak
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Theos
+      run: |
+        # Install dependencies
+        brew install ldid dpkg
+        
+        # Install Theos
+        git clone --recursive https://github.com/theos/theos.git $THEOS
+        
+        # Download iOS SDK
+        curl -LO https://github.com/theos/sdks/releases/download/iPhoneOS16.5/iPhoneOS16.5.sdk.tar.xz
+        tar -xf iPhoneOS16.5.sdk.tar.xz -C $THEOS/sdks/
+      env:
+        THEOS: /opt/theos
+
+    - name: Build Tweak
+      run: |
+        make package FINALPACKAGE=1
+      env:
+        THEOS: /opt/theos
+        ARCHS: arm64
+        TARGET: iphone:clang:16.5:14.0
+
+    - name: Find built dylib
+      run: |
+        find . -name "*.dylib" -o -name "*.deb" | head -20
+
+    - name: Upload dylib artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TelegramTweak767-dylib
+        path: |
+          .theos/obj/debug/TelegramTweak767.dylib
+          packages/*.deb
+        if-no-files-found: warn
+
+    - name: Also check alternate paths
+      run: |
+        find /opt/theos -name "TelegramTweak767*" 2>/dev/null || true
+        find . -name "*.dylib" 2>/dev/null || true
