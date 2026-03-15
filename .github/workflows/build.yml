@@ -10,31 +10,38 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout
+    - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install tools
+    - name: Install Dependencies
       run: brew install ldid dpkg
 
-    - name: Install Theos
+    - name: Setup Theos Manually
       run: |
+        # 1. Clone Theos to home directory to avoid permission issues
         git clone --recursive https://github.com/theos/theos.git ~/theos
+        
+        # 2. Automatically find and link the iOS SDK from the Mac runner
         SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
-        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
-        rm -rf ~/theos/sdks/iPhoneOS${SDK_VER}.sdk
-        ln -sf "$SDK_PATH" ~/theos/sdks/iPhoneOS${SDK_VER}.sdk
-        echo "SDK: $(ls ~/theos/sdks/)"
+        SDK_NAME=$(basename $SDK_PATH)
+        mkdir -p ~/theos/sdks
+        ln -sf "$SDK_PATH" ~/theos/sdks/$SDK_NAME
+        
+        # 3. Save THEOS path for the next steps
+        echo "THEOS=~/theos" >> $GITHUB_ENV
+        echo "Using SDK: $SDK_NAME"
 
-    - name: Build
+    - name: Build Package
       run: |
-        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        # Use the SDK found in the previous step
+        export SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
         make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:${SDK_VER}:14.0"
       env:
         THEOS: /Users/runner/theos
 
-    - name: Upload
+    - name: Upload Finished Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: TelegramTweak767
+        name: Telegram-767-MOD-Package
         path: packages/*.deb
         if-no-files-found: warn
