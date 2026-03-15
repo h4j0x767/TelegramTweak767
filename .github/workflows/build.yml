@@ -10,23 +10,24 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Theos with Official Action
-      uses: theos/theos-action@main
-      with:
-        toolchain-cache: true
-        theos-cache: true
-        xcode-path: /Applications/Xcode.app
+    - name: Install build tools
+      run: brew install ldid dpkg
 
-    - name: Build Tweak
+    - name: Install Theos
       run: |
-        make package FINALPACKAGE=1 ARCHS=arm64
+        git clone --recursive https://github.com/theos/theos.git ~/theos
+        curl -fsSL https://github.com/theos/sdks/releases/download/iPhoneOS16.5/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C ~/theos/sdks
 
-    - name: Upload Package
+    - name: Build
+      run: make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:16.5:14.0"
+      env:
+        THEOS: ~/theos
+
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: TelegramTweak767-deb
-        path: packages/
-        if-no-files-found: warn
+        name: TelegramTweak767
+        path: packages/*.deb
