@@ -5,51 +5,28 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  THEOS: ${{ github.workspace }}/theos
-
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Theos
-      uses: actions/cache@v4
-      id: cache-theos
+    - name: Setup Theos with Official Action
+      uses: theos/theos-action@main
       with:
-        path: theos/
-        key: theos-${{ runner.os }}
-
-    - name: Install Theos (if not cached)
-      if: steps.cache-theos.outputs.cache-hit != 'true'
-      run: |
-        brew install ldid dpkg xz
-        git clone --recursive https://github.com/theos/theos.git $THEOS
-        curl -LO https://github.com/theos/sdks/releases/download/iPhoneOS16.5/iPhoneOS16.5.sdk.tar.xz
-        tar -xf iPhoneOS16.5.sdk.tar.xz -C $THEOS/sdks/
+        toolchain-cache: true
+        theos-cache: true
+        xcode-path: /Applications/Xcode.app
 
     - name: Build Tweak
       run: |
-        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:16.5:14.0"
+        make package FINALPACKAGE=1 ARCHS=arm64
 
-    - name: List output files
-      run: |
-        find . -name "*.dylib" -o -name "*.deb" | head -20
-        ls packages/ 2>/dev/null || echo "packages dir empty"
-
-    - name: Upload .deb package
+    - name: Upload Package
       uses: actions/upload-artifact@v4
       with:
-        name: TelegramTweak767-package
-        path: packages/*.deb
-        if-no-files-found: warn
-
-    - name: Upload dylib
-      uses: actions/upload-artifact@v4
-      with:
-        name: TelegramTweak767-dylib
-        path: .theos/**/*.dylib
+        name: TelegramTweak767-deb
+        path: packages/
         if-no-files-found: warn
