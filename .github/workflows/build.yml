@@ -13,14 +13,24 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Theos
-      uses: kabiroberai/theos-action@v1
-      with:
-        sdk-url: "https://github.com/theos/sdks/releases/download/iPhoneOS16.5/iPhoneOS16.5.sdk.tar.xz"
-        cache-key: theos-${{ runner.os }}
+    - name: Install tools
+      run: brew install ldid dpkg
+
+    - name: Install Theos
+      run: |
+        git clone --recursive https://github.com/theos/theos.git ~/theos
+        SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        rm -rf ~/theos/sdks/iPhoneOS${SDK_VER}.sdk
+        ln -sf "$SDK_PATH" ~/theos/sdks/iPhoneOS${SDK_VER}.sdk
+        echo "SDK: $(ls ~/theos/sdks/)"
 
     - name: Build
-      run: make package FINALPACKAGE=1 ARCHS=arm64
+      run: |
+        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:${SDK_VER}:14.0"
+      env:
+        THEOS: /Users/runner/theos
 
     - name: Upload
       uses: actions/upload-artifact@v4
