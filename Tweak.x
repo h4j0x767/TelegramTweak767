@@ -7,6 +7,16 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
+@interface TGModernConversationController : UIViewController
+@end
+
+@interface TGPrivacySettingsController : UIViewController
+@end
+
+@interface TGRootController : UIViewController
+- (void)show767Menu;
+@end
+
 // Global Ghost Mode toggle
 static BOOL ghostModeEnabled = YES;
 static UIWindow *menuWindow767 = nil;
@@ -86,7 +96,7 @@ static UIWindow *menuWindow767 = nil;
     
     // Separator
     UIView *sep = [[UIView alloc] initWithFrame:CGRectMake(10, 38, 200, 0.5)];
-    sep.backgroundColor = [UIColor colorWithWhite:0.3 alpha:1.0];
+    sep.backgroundColor = [UIColor colorWhite:0.3 alpha:1.0];
     [panel addSubview:sep];
     
     // Ghost Mode Label
@@ -152,6 +162,8 @@ static UIWindow *menuWindow767 = nil;
     NSLog(@"[767 MOD] Telegram Tweak Loaded!");
     NSLog(@"[767 MOD] Ghost Mode: Active");
     
-    // Initialize all hooks
-    %init;
+    // Initialize hooks
+    %init(TGModernConversationController);
+    %init(TGPrivacySettingsController);
+    %init(TGRootController);
 }
