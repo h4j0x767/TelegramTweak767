@@ -7,35 +7,26 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
 
-    - name: Setup Theos
-      uses: theos/setup-theos@v1
+    - name: Setup Theos with Official Action
+      uses: theos/theos-action@main
       with:
-        arch: arm64
+        toolchain-cache: true
+        theos-cache: true
+        xcode-path: /Applications/Xcode.app
 
     - name: Build Tweak
       run: |
-        export THEOS_DEVICE_IP=localhost
-        make package FINALPACKAGE=1
-      env:
-        THEOS: ${{ github.workspace }}/theos
+        make package FINALPACKAGE=1 ARCHS=arm64
 
-    - name: Upload .deb package
+    - name: Upload Package
       uses: actions/upload-artifact@v4
       with:
-        name: TelegramTweak-DEB
-        path: packages/*.deb
-
-    - name: Upload .dylib file
-      uses: actions/upload-artifact@v4
-      with:
-        name: TelegramTweak-DYLIB
-        path: .theos/obj/debug/*.dylib
+        name: TelegramTweak767-deb
+        path: packages/
         if-no-files-found: warn
