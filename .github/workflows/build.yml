@@ -18,83 +18,30 @@ jobs:
 
     - name: Setup Theos Manually
       run: |
-        # 1. Clone Theos to home directory with full path expansion
+        # 1. Clone Theos to home directory to avoid permission issues
         git clone --recursive https://github.com/theos/theos.git ~/theos
         
-        # 2. Get the iOS SDK path from xcrun
+        # 2. Automatically find and link the iOS SDK from the Mac runner
         SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
-        SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version)
-        
-        # 3. Create symlink in Theos sdks directory
+        SDK_NAME=$(basename $SDK_PATH)
         mkdir -p ~/theos/sdks
-        ln -sf "$SDK_PATH" ~/theos/sdks/iPhoneOS.sdk
+        ln -sf "$SDK_PATH" ~/theos/sdks/$SDK_NAME
         
-        # 4. Export THEOS with full path (no tilde)
-        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-        echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
-        echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
-        
-        # 5. Verify setup
-        echo "✓ Theos installed at: $HOME/theos"
-        echo "✓ SDK found at: $SDK_PATH"
-        echo "✓ SDK Version: $SDK_VERSION"
-
-    - name: Verify Tweak Configuration
-      run: |
-        # Check if Makefile and Tweak.x exist
-        echo "=== Repository Structure ==="
-        ls -la ${{ github.workspace }}/
-        echo ""
-        echo "=== Makefile Content ==="
-        cat ${{ github.workspace }}/Makefile
-        echo ""
-        echo "=== First 50 lines of Tweak.x ==="
-        head -50 ${{ github.workspace }}/Tweak.x
-
-    - name: Clean Previous Builds
-      run: |
-        cd ${{ github.workspace }}
-        make clean THEOS=${{ env.THEOS }}
-      continue-on-error: true
+        # 3. Save THEOS path for the next steps
+        echo "THEOS=~/theos" >> $GITHUB_ENV
+        echo "Using SDK: $SDK_NAME"
 
     - name: Build Package
       run: |
-        cd ${{ github.workspace }}
-        # Build with explicit paths and debugging
-        make package \
-          FINALPACKAGE=1 \
-          ARCHS=arm64 \
-          TARGET=iphone:clang:${{ env.SDK_VERSION }}:14.0 \
-          THEOS=${{ env.THEOS }} \
-          SDKVERSION=${{ env.SDK_VERSION }} \
-          -j$(sysctl -n hw.ncpu)
+        # Use the SDK found in the previous step
+        export SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:${SDK_VER}:14.0"
       env:
-        THEOS: ${{ env.THEOS }}
-        SDKVERSION: ${{ env.SDK_VERSION }}
-
-    - name: Check Build Output
-      if: success()
-      run: |
-        echo "=== Build Success! ==="
-        ls -la ${{ github.workspace }}/packages/
+        THEOS: /Users/runner/theos
 
     - name: Upload Finished Artifact
-      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: Telegram-767-MOD-Package
         path: packages/*.deb
         if-no-files-found: warn
-
-    - name: Debug on Failure
-      if: failure()
-      run: |
-        echo "=== Build Failed - Debug Info ==="
-        echo "THEOS env: ${{ env.THEOS }}"
-        echo "SDK_PATH env: ${{ env.SDK_PATH }}"
-        echo ""
-        echo "=== Theos Directory ==="
-        ls -la $HOME/theos/ 2>/dev/null || echo "Theos not found"
-        echo ""
-        echo "=== SDK Directory ==="
-        ls -la $HOME/theos/sdks/ 2>/dev/null || echo "SDK not found"
