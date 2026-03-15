@@ -19,15 +19,15 @@ jobs:
     - name: Install Theos
       run: |
         git clone --recursive https://github.com/theos/theos.git ~/theos
-        SDKPATH=$(xcrun --sdk iphoneos --show-sdk-path)
-        SDKNAME=$(basename $SDKPATH)
-        ln -sf "$SDKPATH" ~/theos/sdks/$SDKNAME
-        echo "Using SDK: $SDKNAME at $SDKPATH"
+        SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        ln -sf "$SDK_PATH" ~/theos/sdks/iPhoneOS${SDK_VER}.sdk
+        echo "SDK: iPhoneOS${SDK_VER}.sdk -> $SDK_PATH"
 
     - name: Build
       run: |
-        SDK=$(basename $(xcrun --sdk iphoneos --show-sdk-path))
-        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:$SDK:"
+        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:${SDK_VER}:14.0"
       env:
         THEOS: /Users/runner/theos
 
