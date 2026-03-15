@@ -152,8 +152,6 @@ static UIWindow *menuWindow767 = nil;
     NSLog(@"[767 MOD] Telegram Tweak Loaded!");
     NSLog(@"[767 MOD] Ghost Mode: Active");
     
-    // Initialize hooks
-    %init(TGModernConversationController);
-    %init(TGPrivacySettingsController);
-    %init(TGRootController);
+    // Initialize all hooks
+    %init;
 }
