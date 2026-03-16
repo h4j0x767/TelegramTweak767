@@ -14,24 +14,22 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install dependencies
-      run: |
-        brew install ldid dpkg
-        # ئەڤە بۆ هندێ ل هەر جهەکێ بیت کار بکەت
-        sudo ln -sf /usr/local/bin/ldid /usr/bin/ldid || true
+      run: brew install ldid dpkg
 
     - name: Setup Theos
       run: |
         git clone --recursive https://github.com/theos/theos.git ~/theos
-        curl -L https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz -o iPhoneOS16.5.sdk.tar.xz
+        # مە لینک گوهۆڕی بۆ ئەو ڤێرژنێ د وێنەیێ تە دا هەبیت داکو کێشە نەمینیت
+        curl -L https://github.com/theos/sdks/releases/download/iPhoneOS14.5/iPhoneOS14.5.sdk.tar.xz -o iPhoneOS14.5.sdk.tar.xz
         mkdir -p ~/theos/sdks
-        tar -xJf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks
-        rm iPhoneOS16.5.sdk.tar.xz
+        tar -xJf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks
+        rm iPhoneOS14.5.sdk.tar.xz
 
     - name: Build All
       run: |
         export THEOS=~/theos
-        # مە فۆڵدەرێن خوە ل فێرێ رێکخستن
-        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:16.5:14.0"
+        # مە تارگێت کرە 14.5 وەک ئەوێ د وێنەی دا
+        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:14.5:14.0"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
