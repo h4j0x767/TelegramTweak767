@@ -3,13 +3,12 @@
 #import <substrate.h>
 #import <dlfcn.h>
 
-// --- ئەڤ بەشە زێدە بوو بۆ هندێ خەلەتی نەمینیت ---
+// --- Fix for Compiler Error ---
 @interface UIWindow (h767)
 - (void)show767Menu;
 - (void)toggleMainPanel;
 - (void)powerChanged:(UISlider *)sender;
 @end
-// ------------------------------------------
 
 // Settings
 static float shotPowerMultiplier = 1.0f;
@@ -21,8 +20,11 @@ static float (*orig_GetShotPower)(void* player) = NULL;
 
 // The Hook Implementation
 float hook_GetShotPower(void* player) {
-    float power = orig_GetShotPower(player);
-    return power * shotPowerMultiplier;
+    if (orig_GetShotPower) {
+        float power = orig_GetShotPower(player);
+        return power * shotPowerMultiplier;
+    }
+    return 1.0f;
 }
 
 // ============================================
@@ -76,7 +78,7 @@ float hook_GetShotPower(void* player) {
     
     // Title
     UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 250, 25)];
-    title.text = @"🚀 SUPER KICK 767";
+    title.text = @"SUPER KICK 767";
     title.textAlignment = NSTextAlignmentCenter;
     title.font = [UIFont boldSystemFontOfSize:18];
     title.textColor = [UIColor cyanColor];
@@ -110,4 +112,48 @@ float hook_GetShotPower(void* player) {
 
     UIViewController *vc = [[UIViewController alloc] init];
     [vc.view addSubview:tinyBtn];
-    [vc.view addSubview:panel
+    [vc.view addSubview:panel];
+    
+    menuWindow767.rootViewController = vc;
+    menuWindow767.hidden = NO;
+}
+
+%new
+- (void)toggleMainPanel {
+    UIView *panel = [menuWindow767 viewWithTag:767];
+    panel.hidden = !panel.isHidden;
+}
+
+%new
+- (void)powerChanged:(UISlider *)sender {
+    shotPowerMultiplier = sender.value;
+    powerLabel.text = [NSString stringWithFormat:@"Shot Power: %.0fx", shotPowerMultiplier];
+}
+
+%end
+
+// ============================================
+// CONSTRUCTOR: Hook C++ Functions
+// ============================================
+%ctor {
+    NSLog(@"[767] Super Goal Hack Loading...");
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        void* handle = NULL;
+        while (!handle) {
+            handle = dlopen("@executable_path/Frameworks/UnityFramework.framework/UnityFramework", RTLD_NOW);
+            if (!handle) handle = dlopen("UnityFramework", RTLD_NOW);
+            usleep(500000); // 0.5s
+        }
+        
+        NSLog(@"[767] UnityFramework found, hooking...");
+        
+        void* sym = dlsym(handle, "__ZN8SL_utils12GetShotPowerE7PointerI6PlayerE");
+        if (sym) {
+            MSHookFunction(sym, (void *)&hook_GetShotPower, (void **)&orig_GetShotPower);
+            NSLog(@"[767] GetShotPower Hooked!");
+        } else {
+            NSLog(@"[767] Symbol GetShotPower NOT found!");
+        }
+    });
+}
