@@ -15,7 +15,7 @@
 @interface TGPrivacySettingsController : UIViewController
 @end
 
-@interface TGRootController : UIViewController
+@interface UINavigationController (767)
 - (void)show767Menu;
 - (void)ghostToggle:(UISwitch *)sender;
 - (void)close767Menu;
@@ -43,7 +43,7 @@ static UIWindow *menuWindow767 = nil;
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
     %orig;
     if (ghostModeEnabled) {
-        // مەیلا "خوێندراوم" نانێرین
+        // مەیلا "خوێندراوم" naneerim
         return;
     }
 }
@@ -58,7 +58,7 @@ static UIWindow *menuWindow767 = nil;
 - (void)viewDidLoad {
     %orig;
     if (ghostModeEnabled) {
-        // داناستنا "Last Seen = Nobody" ب شێوازی خۆکار
+        // dahanastina "Last Seen = Nobody" by automatic mode
         NSLog(@"[767] Ghost Mode: Hiding online status");
     }
 }
