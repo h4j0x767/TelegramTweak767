@@ -19,8 +19,8 @@ jobs:
     - name: Setup Theos
       run: |
         git clone --recursive https://github.com/theos/theos.git ~/theos
-        # مە لینک گوهۆڕی بۆ ئەو ڤێرژنێ د وێنەیێ تە دا هەبیت داکو کێشە نەمینیت
-        curl -L https://github.com/theos/sdks/releases/download/iPhoneOS14.5/iPhoneOS14.5.sdk.tar.xz -o iPhoneOS14.5.sdk.tar.xz
+        # مە لینک گوهۆڕی بۆ لینکێ فەرمی و درست یێ گیت‌هابێ داکو بێ کێشە دابەزیت
+        curl -L https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS14.5.sdk.tar.xz -o iPhoneOS14.5.sdk.tar.xz
         mkdir -p ~/theos/sdks
         tar -xJf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks
         rm iPhoneOS14.5.sdk.tar.xz
@@ -28,7 +28,6 @@ jobs:
     - name: Build All
       run: |
         export THEOS=~/theos
-        # مە تارگێت کرە 14.5 وەک ئەوێ د وێنەی دا
         make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:14.5:14.0"
 
     - name: Upload Artifacts
