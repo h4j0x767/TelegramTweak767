@@ -1,4 +1,5 @@
-name: Build Telegram Tweak
+name: Build 767 MOD Tweaks
+
 on:
   push:
     branches: [ main ]
@@ -7,18 +8,33 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Install Theos
-        run: |
-          git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=~/theos" >> $GITHUB_ENV
-          echo "~/theos/bin" >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        brew install ldid dpkg
+        # ئەڤە بۆ هندێ ل هەر جهەکێ بیت کار بکەت
+        sudo ln -sf /usr/local/bin/ldid /usr/bin/ldid || true
 
-      - name: Build Tweak
-        run: |
-          make package FINALPACKAGE=1
+    - name: Setup Theos
+      run: |
+        git clone --recursive https://github.com/theos/theos.git ~/theos
+        curl -L https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz -o iPhoneOS16.5.sdk.tar.xz
+        mkdir -p ~/theos/sdks
+        tar -xJf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks
+        rm iPhoneOS16.5.sdk.tar.xz
+
+    - name: Build All
+      run: |
+        export THEOS=~/theos
+        # مە فۆڵدەرێن خوە ل فێرێ رێکخستن
+        make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:16.5:14.0"
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: 767_MOD_Tweaks
+        path: packages/*.deb
