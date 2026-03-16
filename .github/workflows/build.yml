@@ -2,38 +2,38 @@ name: Build 767 MOD Tweaks
 
 on:
   push:
-      branches: [ main ]
-        workflow_dispatch:
+    branches: [ main ]
+  workflow_dispatch:
 
-        jobs:
-          build:
-              runs-on: macos-latest
+jobs:
+  build:
+    runs-on: macos-latest
 
-                  steps:
-                      - name: Checkout
-                            uses: actions/checkout@v4
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-                                - name: Install build tools
-                                      run: brew install ldid dpkg
+    - name: Install build tools
+      run: brew install ldid dpkg
 
-                                          - name: Install Theos
-                                                run: |
-                                                        git clone --recursive https://github.com/theos/theos.git ~/theos
-                                                                curl -fsSL https://github.com/theos/sdks/releases/download/iPhoneOS16.5/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C ~/theos/sdks
+    - name: Install Theos
+      run: |
+        git clone --recursive https://github.com/theos/theos.git ~/theos
+        curl -fsSL https://github.com/theos/sdks/releases/download/iPhoneOS16.5/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C ~/theos/sdks
 
-                                                                    - name: Build All
-                                                                          run: make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:16.5:14.0"
-                                                                                env:
-                                                                                        THEOS: ~/theos
+    - name: Build All
+      run: make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:16.5:14.0"
+      env:
+        THEOS: ~/theos
 
-                                                                                            - name: Upload Telegram
-                                                                                                  uses: actions/upload-artifact@v4
-                                                                                                        with:
-                                                                                                                name: TelegramTweak767
-                                                                                                                        path: packages/com.767.telegramtweak_*.deb
-                                                                                                                        
-                                                                                                                            - name: Upload SuperGoal
-                                                                                                                                  uses: actions/upload-artifact@v4
-                                                                                                                                        with:
-                                                                                                                                                name: SuperGoalTweak767
-                                                                                                                                                        path: packages/com.767.supergoalhack_*.deb
+    - name: Upload Telegram
+      uses: actions/upload-artifact@v4
+      with:
+        name: TelegramTweak767
+        path: packages/com.767.telegramtweak_*.deb
+
+    - name: Upload SuperGoal
+      uses: actions/upload-artifact@v4
+      with:
+        name: SuperGoalTweak767
+        path: packages/com.767.supergoalhack_*.deb
