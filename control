@@ -1,9 +1,0 @@
-Package: com.767.telegramtweak767
-Name: TelegramTweak767
-Depends: mobilesubstrate
-Version: 1.0.0
-Architecture: iphoneos-arm
-Description: Aggregate project for 767 tweaks
-Maintainer: 767
-Author: 767
-Section: Tweaks
