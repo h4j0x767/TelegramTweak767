@@ -1,0 +1,9 @@
+Package: com.767.supergoalhack
+  Name: Super Goal 767 MOD
+Depends: mobilesubstrate
+  Version: 1.0.0
+  Architecture: iphoneos-arm
+  Description: Super Shot Power for Super Goal (Stickman)
+Maintainer: 767
+  Author: 767
+  Section: Tweaks
