@@ -34,6 +34,5 @@ jobs:
 
     - name: Upload SuperGoal
       uses: actions/upload-artifact@v4
-      with:
-        name: SuperGoalTweak767
+      with:        name: SuperGoalTweak767
         path: packages/com.767.supergoalhack_*.deb
