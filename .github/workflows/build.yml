@@ -13,11 +13,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Theos
-        uses: theos/setup-theos@v1.1
+      - name: Install Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          echo "~/theos/bin" >> $GITHUB_PATH
 
       - name: Build Tweak
         run: |
           make package FINALPACKAGE=1
-        env:
-          THEOS: ${{ github.workspace }}/theos
