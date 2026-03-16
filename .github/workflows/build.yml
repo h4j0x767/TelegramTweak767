@@ -8,20 +8,13 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Setup Theos
-        uses: theos/setup-theos@v1
-
-      - name: Download SDK
-        run: |
-          curl -LO https://github.com/theos/sdks/archive/master.zip
-          unzip master.zip -d $THEOS/sdks
-          mv $THEOS/sdks/sdks-master/* $THEOS/sdks/
-          rm -rf master.zip $THEOS/sdks/sdks-master
+        uses: theos/setup-theos@v1.1
 
       - name: Build Tweak
         run: |
