@@ -1,4 +1,4 @@
-name: Inject Hack (Final Force Fix)
+name: Inject Hack (767 MOD Tweaks)
 
 on:
   workflow_dispatch:
@@ -84,15 +84,14 @@ EOF
         ldid -S "$APP_PATH/Frameworks/SuperGoalTweak.dylib"
         ldid -S "$BINARY"
 
-    - name: Repack IPA (Force Zip)
+    - name: Repack IPA
       run: |
         cd ipa_work
-        zip -r ../SuperGoal_MOD_FINAL.ipa Payload/
+        zip -r ../767_MOD_Tweaks.ipa Payload/
         cd ..
-        ls -lh *.ipa
 
     - name: Upload Finished Hacked IPA
       uses: actions/upload-artifact@v4
       with:
-        name: SuperGoal_MOD_FINAL
-        path: SuperGoal_MOD_FINAL.ipa
+        name: 767_MOD_Tweaks
+        path: 767_MOD_Tweaks.ipa
