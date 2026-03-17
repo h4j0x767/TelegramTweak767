@@ -1,4 +1,4 @@
-name: Inject Hack (767 MOD Tweaks)
+name: Inject Hack (767 MOD Tweaks Final)
 
 on:
   workflow_dispatch:
@@ -49,8 +49,7 @@ jobs:
         mkdir -p "$APP_PATH/Frameworks"
         cp CydiaSubstrate "$APP_PATH/Frameworks/"
         cp SuperGoalTweak.dylib "$APP_PATH/Frameworks/"
-        BINARY_NAME=$(basename "$APP_PATH" .app)
-        BINARY="$APP_PATH/$BINARY_NAME"
+        BINARY=$(find "$APP_PATH" -maxdepth 1 -executable -type f | head -1)
         
         cat << 'EOF' > patch.py
 import struct, sys, os
@@ -80,17 +79,18 @@ else: patch(data, 0)
 with open(binary, 'wb') as f: f.write(data)
 EOF
         python3 patch.py "$BINARY"
+        
         ldid -S "$APP_PATH/Frameworks/CydiaSubstrate"
         ldid -S "$APP_PATH/Frameworks/SuperGoalTweak.dylib"
         ldid -S "$BINARY"
 
-    - name: Repack IPA
+    - name: Repack & Upload
       run: |
         cd ipa_work
         zip -r ../767_MOD_Tweaks.ipa Payload/
         cd ..
-
-    - name: Upload Finished Hacked IPA
+        
+    - name: Final Artifact
       uses: actions/upload-artifact@v4
       with:
         name: 767_MOD_Tweaks
