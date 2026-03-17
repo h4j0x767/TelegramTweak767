@@ -1,37 +1,86 @@
-name: Build 767 MOD Tweaks
+name: Inject Hack (767 MOD Tweaks Final)
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      ipa_url:
+        description: 'Direct download URL for IPA'
+        required: true
+        default: 'https://files.catbox.moe/cb4n9b.ipa'
 
 jobs:
-  build:
+  inject:
     runs-on: macos-latest
-
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
     - name: Install dependencies
       run: brew install ldid dpkg
-
     - name: Setup Theos
       run: |
         git clone --recursive https://github.com/theos/theos.git ~/theos
-        # مە لینک گوهۆڕی بۆ لینکێ فەرمی و درست یێ گیت‌هابێ داکو بێ کێشە دابەزیت
-        curl -L https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS14.5.sdk.tar.xz -o iPhoneOS14.5.sdk.tar.xz
+        curl -L https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS14.5.sdk.tar.xz -o sdk.tar.xz
         mkdir -p ~/theos/sdks
-        tar -xJf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks
-        rm iPhoneOS14.5.sdk.tar.xz
-
-    - name: Build All
+        tar -xJf sdk.tar.xz -C ~/theos/sdks
+        rm sdk.tar.xz
+    - name: Build dylib
       run: |
         export THEOS=~/theos
         make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:14.5:14.0"
-
-    - name: Upload Artifacts
+    - name: Prepare Files
+      run: |
+        DEB=$(ls packages/com.767.supergoalhack_*.deb | head -1)
+        dpkg-deb -x "$DEB" deb_extracted/
+        cp deb_extracted/Library/MobileSubstrate/DynamicLibraries/SuperGoalTweak.dylib ./SuperGoalTweak.dylib
+        curl -L "https://raw.githubusercontent.com/KiraIsHera/Substrate-For-Injection/main/CydiaSubstrate" -o CydiaSubstrate
+        install_name_tool -change "/usr/lib/libsubstrate.dylib" "@executable_path/Frameworks/CydiaSubstrate" SuperGoalTweak.dylib || true
+    - name: Download and Patch
+      run: |
+        curl -L "${{ github.event.inputs.ipa_url }}" -o original.zip
+        unzip -q original.zip -d ipa_work
+        APP_PATH=$(find ipa_work/Payload -name "*.app" -type d | head -n 1 | sed 's/[:/]*$//')
+        mkdir -p "$APP_PATH/Frameworks"
+        cp CydiaSubstrate "$APP_PATH/Frameworks/"
+        cp SuperGoalTweak.dylib "$APP_PATH/Frameworks/"
+        BINARY=$(find "$APP_PATH" -maxdepth 1 -executable -type f | head -1)
+        cat << 'EOF' > patch.py
+import struct, sys, os
+binary = sys.argv[1]
+dylib = b'@executable_path/Frameworks/SuperGoalTweak.dylib\x00'
+with open(binary, 'r+b') as f:
+    data = bytearray(f.read())
+def patch(data, off):
+    magic = struct.unpack_from('<I', data, off)[0]
+    if magic == 0xFEEDFACF:
+        ncmds, sizeofcmds = struct.unpack_from('<II', data, off+16)
+        hdr = 32
+    else: return
+    cmdsize = (24 + len(dylib) + 7) & ~7
+    cmd = struct.pack('<IIIIII', 0xC, cmdsize, 24, 2, 0x10000, 0x10000) + dylib
+    cmd += b'\x00' * (cmdsize - len(cmd))
+    ins = off + hdr + sizeofcmds
+    data[ins:ins] = cmd
+    struct.pack_into('<I', data, off+16, ncmds+1)
+    struct.pack_into('<I', data, off+20, sizeofcmds+cmdsize)
+magic = struct.unpack_from('<I', data, 0)[0]
+if magic == 0xBEBAFECA:
+    nfat = struct.unpack_from('>I', data, 4)[0]
+    for i in range(nfat):
+        patch(data, struct.unpack_from('>I', data, 8+i*20)[0])
+else: patch(data, 0)
+with open(binary, 'wb') as f: f.write(data)
+EOF
+        python3 patch.py "$BINARY"
+        ldid -S "$APP_PATH/Frameworks/CydiaSubstrate"
+        ldid -S "$APP_PATH/Frameworks/SuperGoalTweak.dylib"
+        ldid -S "$BINARY"
+    - name: Repack & Upload
+      run: |
+        cd ipa_work
+        zip -r ../767_MOD_Tweaks.ipa Payload/
+        cd ..
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: 767_MOD_Tweaks
-        path: packages/*.deb
+        path: 767_MOD_Tweaks.ipa
