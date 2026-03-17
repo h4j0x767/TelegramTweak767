@@ -18,7 +18,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install ldid dpkg opool/tap/insert_dylib
+        brew install ldid dpkg
+        # Use a more reliable tap or build from source
+        brew install tylinux/tap/insert-dylib || (git clone https://github.com/Tyilo/insert_dylib.git && cd insert_dylib && xcodebuild && sudo cp build/Release/insert_dylib /usr/local/bin/)
 
     - name: Setup Theos
       run: |
@@ -44,7 +46,6 @@ jobs:
         cp deb_extracted/Library/MobileSubstrate/DynamicLibraries/SuperGoalTweak.dylib ./SuperGoalTweak.dylib
         
         # Change Tweak dependency on substrate to be relative
-        # Most tweaks depend on /usr/lib/libsubstrate.dylib
         install_name_tool -change "/usr/lib/libsubstrate.dylib" "@executable_path/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" SuperGoalTweak.dylib || true
         install_name_tool -change "/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" "@executable_path/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" SuperGoalTweak.dylib || true
 
@@ -63,8 +64,9 @@ jobs:
         BINARY_NAME=$(basename "$APP_PATH" .app)
         BINARY="$APP_PATH/$BINARY_NAME"
         
-        # Inject using insert_dylib
-        insert_dylib --strip-codesig --inplace "@executable_path/Frameworks/SuperGoalTweak.dylib" "$BINARY"
+        # Use insert_dylib (checking both possible names)
+        INSERT_DYLIB=$(which insert_dylib || which insert-dylib)
+        "$INSERT_DYLIB" --strip-codesig --inplace "@executable_path/Frameworks/SuperGoalTweak.dylib" "$BINARY"
         
         # Sign everything
         ldid -S "$APP_PATH/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
