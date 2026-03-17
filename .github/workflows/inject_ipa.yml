@@ -1,4 +1,4 @@
-name: Inject Hack into IPA
+name: Inject Hack into IPA (Anti-Crash Version)
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install ldid dpkg
+        brew install ldid dpkg opool/tap/insert_dylib
 
     - name: Setup Theos
       run: |
@@ -33,67 +33,51 @@ jobs:
         export THEOS=~/theos
         make package FINALPACKAGE=1 ARCHS=arm64 TARGET="iphone:clang:14.5:14.0"
 
-    - name: Extract dylib from deb
+    - name: Prepare Frameworks
       run: |
+        # Download portable CydiaSubstrate
+        curl -L "https://github.com/Diatrus/CydiaSubstrate-No-Install/raw/master/CydiaSubstrate.framework.zip" -o substrate.zip
+        unzip -q substrate.zip
+        # Found deb and extract dylib
         DEB=$(ls packages/com.767.supergoalhack_*.deb | head -1)
         dpkg-deb -x "$DEB" deb_extracted/
         cp deb_extracted/Library/MobileSubstrate/DynamicLibraries/SuperGoalTweak.dylib ./SuperGoalTweak.dylib
+        
+        # Change Tweak dependency on substrate to be relative
+        # Most tweaks depend on /usr/lib/libsubstrate.dylib
+        install_name_tool -change "/usr/lib/libsubstrate.dylib" "@executable_path/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" SuperGoalTweak.dylib || true
+        install_name_tool -change "/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" "@executable_path/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" SuperGoalTweak.dylib || true
 
-    - name: Download original IPA
+    - name: Download and Inject
       run: |
         curl -L "${{ github.event.inputs.ipa_url }}" -o original.zip
         unzip -q original.zip -d ipa_work
-
-    - name: Inject dylib into IPA
-      run: |
-        APP_PATH=$(find ipa_work/Payload -name "*.app" -type d | head -n 1)
-        APP_PATH=$(echo "$APP_PATH" | sed 's/[:/]*$//')
-        echo "Found App: $APP_PATH"
-        
+        APP_PATH=$(find ipa_work/Payload -name "*.app" -type d | head -n 1 | sed 's/[:/]*$//')
         mkdir -p "$APP_PATH/Frameworks"
-        cp SuperGoalTweak.dylib "$APP_PATH/Frameworks/SuperGoalTweak.dylib"
         
+        # Copy Hacked files
+        cp -r CydiaSubstrate.framework "$APP_PATH/Frameworks/"
+        cp SuperGoalTweak.dylib "$APP_PATH/Frameworks/"
+        
+        # Patch Binary
         BINARY_NAME=$(basename "$APP_PATH" .app)
         BINARY="$APP_PATH/$BINARY_NAME"
-        echo "Target Binary: $BINARY"
         
-        python3 -c "
-        import struct, os
-        binary = '$BINARY'
-        dylib = b'@executable_path/Frameworks/SuperGoalTweak.dylib\x00'
-        with open(binary, 'r+b') as f:
-            data = bytearray(f.read())
-        def patch(data, off):
-            magic = struct.unpack_from('<I', data, off)[0]
-            if magic == 0xFEEDFACF:
-                ncmds, sizeofcmds = struct.unpack_from('<II', data, off+16)
-                hdr = 32
-            else: return
-            cmdsize = (24 + len(dylib) + 7) & ~7
-            cmd = struct.pack('<IIIIII', 0xC, cmdsize, 24, 2, 0x10000, 0x10000) + dylib
-            cmd += b'\x00' * (cmdsize - len(cmd))
-            ins = off + hdr + sizeofcmds
-            data[ins:ins] = cmd
-            struct.pack_into('<I', data, off+16, ncmds+1)
-            struct.pack_into('<I', data, off+20, sizeofcmds+cmdsize)
-        magic = struct.unpack_from('<I', data, 0)[0]
-        if magic == 0xBEBAFECA:
-            nfat = struct.unpack_from('>I', data, 4)[0]
-            for i in range(nfat):
-                patch(data, struct.unpack_from('>I', data, 8+i*20)[0])
-        else: patch(data, 0)
-        with open(binary, 'wb') as f: f.write(data)
-        "
+        # Inject using insert_dylib
+        insert_dylib --strip-codesig --inplace "@executable_path/Frameworks/SuperGoalTweak.dylib" "$BINARY"
         
+        # Sign everything
+        ldid -S "$APP_PATH/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
         ldid -S "$APP_PATH/Frameworks/SuperGoalTweak.dylib"
         ldid -S "$BINARY"
         
+        # Repack
         cd ipa_work
-        zip -qr ../SuperGoal_HACKED_767.ipa Payload/
+        zip -qr ../SuperGoal_FIXED_HACK.ipa Payload/
         cd ..
 
-    - name: Upload Hacked IPA
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: SuperGoal_HACKED_767
-        path: SuperGoal_HACKED_767.ipa
+        name: SuperGoal_FIXED_HACK
+        path: SuperGoal_FIXED_HACK.ipa
